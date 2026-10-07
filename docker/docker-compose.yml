@@ -1,0 +1,17 @@
+services:
+  douyin-mcp:
+    # Docker Hub 镜像（默认）
+    image: yunsur/douyin-mcp
+    # 换成你自己的镜像源地址（国内用户推荐，拉取更快）
+    # image: registry.cn-beijing.aliyuncs.com/yunsur/douyin-mcp
+    container_name: douyin-mcp
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DOUYIN_COOKIES_FILE=/app/data/cookies.txt
+      - TZ=Asia/Shanghai
+      - AUTH_TOKEN=${AUTH_TOKEN:-}
+    ports:
+      - "18080:18080"

@@ -1,0 +1,9 @@
+{
+    "servers": {
+        "douyin-mcp": {
+            "url": "http://localhost:18080/mcp",
+            "type": "http"
+        }
+    },
+    "inputs": []
+}

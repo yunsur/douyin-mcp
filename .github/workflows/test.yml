@@ -1,0 +1,39 @@
+name: Test
+
+# 只跑 hermetic 单元测试（无网络）。需要真实 cookie 的联网测试用 DOUYIN_LIVE_TEST=1
+# 手动开启，CI 里默认跳过，仅保证编译通过。
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Unit tests
+        # -race：签名/直播/私信路径里有后台 goroutine 与共享缓存，竞态要在这里暴露。
+        # 联网测试默认跳过（DOUYIN_LIVE_TEST=1 才跑），所以这一步不需要网络。
+        run: go test -race -count=1 ./...
+
+      # 交叉编译检查：发布产物覆盖五个平台，但 CI 默认只在 linux/amd64 上构建，
+      # 平台相关的编译错误会拖到发版时才暴露。这里只编译不留产物，几秒钟。
+      - name: Cross-compile check
+        run: |
+          for target in darwin/arm64 darwin/amd64 linux/amd64 linux/arm64 windows/amd64; do
+            echo "==> $target"
+            GOOS=${target%/*} GOARCH=${target#*/} CGO_ENABLED=0 go build ./...
+          done
