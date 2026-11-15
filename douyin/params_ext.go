@@ -9,6 +9,9 @@ import (
 
 // WithPlatform adds the www.douyin.com common query group (order significant).
 func (p *Params) WithPlatform(roundTripTime, versionCode, versionName string) *Params {
+	if roundTripTime == "" || roundTripTime == "0" {
+		roundTripTime = "50"
+	}
 	prof := GetProfile()
 	p.Add("device_platform", "webapp")
 	p.Add("aid", "6383")
@@ -17,7 +20,7 @@ func (p *Params) WithPlatform(roundTripTime, versionCode, versionName string) *P
 	p.Add("pc_client_type", "1")
 	p.Add("pc_libra_divert", "Windows")
 	p.Add("support_h265", "1")
-	p.Add("support_dash", "1")
+	p.Add("support_dash", "0")
 	p.Add("cpu_core_num", prof.CpuCoreNum)
 	p.Add("version_code", versionCode)
 	p.Add("version_name", versionName)

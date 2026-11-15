@@ -37,7 +37,7 @@ func hotSearchVideoPlatform(p *Params) *Params {
 	p.Add("pc_client_type", "1")
 	p.Add("pc_libra_divert", "Windows")
 	p.Add("support_h265", "1")
-	p.Add("support_dash", "1")
+	p.Add("support_dash", "0")
 	p.Add("webcast_sdk_version", "170400")
 	p.Add("webcast_version_code", "170400")
 	p.Add("version_code", "170400")
@@ -59,7 +59,7 @@ func hotSearchVideoPlatform(p *Params) *Params {
 	p.Add("platform", "PC")
 	p.Add("downlink", "10")
 	p.Add("effective_type", "4g")
-	p.Add("round_trip_time", "0")
+	p.Add("round_trip_time", "50")
 	return p
 }
 

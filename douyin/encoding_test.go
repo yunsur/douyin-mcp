@@ -255,7 +255,7 @@ func TestParamsPlatformGroupShape(t *testing.T) {
 	want := map[string]string{
 		"device_platform": "webapp", "aid": "6383", "channel": "channel_pc_web",
 		"update_version_code": "170400", "pc_client_type": "1", "pc_libra_divert": "Windows",
-		"support_h265": "1", "support_dash": "1", "cpu_core_num": prof.CpuCoreNum,
+		"support_h265": "1", "support_dash": "0", "cpu_core_num": prof.CpuCoreNum,
 		"version_code": "190500", "version_name": "19.5.0", "cookie_enabled": "true",
 		"screen_width": prof.ScreenWidth, "screen_height": prof.ScreenHeight,
 		"browser_language": "zh-CN", "browser_platform": "Win32", "browser_name": prof.BrowserName,
@@ -268,6 +268,10 @@ func TestParamsPlatformGroupShape(t *testing.T) {
 		if got, _ := p.Get(k); got != v {
 			t.Errorf("WithPlatform[%s] = %q, want %q", k, got, v)
 		}
+	}
+	defaultPlatform := NewParams().WithPlatform("0", "190500", "19.5.0")
+	if got, _ := defaultPlatform.Get("round_trip_time"); got != "50" {
+		t.Errorf("WithPlatform legacy round_trip_time = %q, want 50", got)
 	}
 
 	// Adding an existing key replaces the value but keeps its position.

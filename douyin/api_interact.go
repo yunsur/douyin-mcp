@@ -119,7 +119,7 @@ func (c *Client) PublishCommentWithOpts(ctx context.Context, awemeID, content, r
 	p.Add("pc_libra_divert", "Windows")
 	p.Add("update_version_code", "170400")
 	p.Add("support_h265", "1")
-	p.Add("support_dash", "1")
+	p.Add("support_dash", "0")
 	p.Add("version_code", "170400")
 	p.Add("version_name", "17.4.0")
 	p.Add("cookie_enabled", "true")

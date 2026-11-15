@@ -720,15 +720,16 @@ func TestFeedGetFeedRequest(t *testing.T) {
 	if _, err := c.GetFeed(t.Context(), "20", "3"); err != nil {
 		t.Fatalf("GetFeed: %v", err)
 	}
-	req := sfxRequestFor(t, st, "/aweme/v1/web/module/feed/")
-	if req.Method != "GET" {
-		t.Errorf("method = %q, want GET", req.Method)
+	req := sfxRequestFor(t, st, "/aweme/v2/web/module/feed/")
+	if req.Method != "POST" {
+		t.Errorf("method = %q, want POST", req.Method)
 	}
-	sfxWantHostPath(t, req, "/aweme/v1/web/module/feed/")
+	sfxWantHostPath(t, req, "/aweme/v2/web/module/feed/")
 	q := sfxQuery(t, req)
 	sfxWant(t, q, "module_id", "3003101")
 	sfxWant(t, q, "count", "20")
 	sfxWant(t, q, "refresh_index", "3")
+	sfxWant(t, q, "use_lite_type", "1")
 	sfxWant(t, q, "refer_type", "10")
 	sfxWant(t, q, "device_platform", "webapp")
 	sfxWant(t, q, "aid", "6383")
@@ -736,6 +737,9 @@ func TestFeedGetFeedRequest(t *testing.T) {
 	sfxWant(t, q, "version_code", "170400")
 	sfxWantNonEmpty(t, q, "screen_width")
 	sfxWantNonEmpty(t, q, "browser_name")
+	if got, want := string(req.Body), "encoded_pre_item_ids=&encoded_pre_room_ids="; got != want {
+		t.Errorf("body = %q, want %q", got, want)
+	}
 	if got, want := req.Header("referer"), "https://www.douyin.com/"; got != want {
 		t.Errorf("referer = %q, want %q", got, want)
 	}

@@ -222,7 +222,7 @@ func (c *Client) SearchUser(ctx context.Context, query, offset, num, douyinUserF
 	p.Add("pc_client_type", "1")
 	p.Add("pc_libra_divert", "Windows")
 	p.Add("support_h265", "1")
-	p.Add("support_dash", "1")
+	p.Add("support_dash", "0")
 	p.Add("cpu_core_num", GetProfile().CpuCoreNum)
 	p.Add("version_code", "170400")
 	p.Add("version_name", "17.4.0")

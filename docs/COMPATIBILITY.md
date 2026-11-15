@@ -1,6 +1,10 @@
 # 抖音接口覆盖与校准
 
 本文档记录对当前抖音 PC 网页端的接口覆盖情况与逐接口抓包校准结论。
+## 2026-11 Web 客户端参数复核
+
+使用 Chrome DevTools 抓取当前 PC Web 客户端（`version_code=170400`、`version_name=17.4.0`）后，公共平台参数统一为 `support_dash=0`、`round_trip_time=50`。`get_homefeed` 已切换到浏览器当前使用的 `POST /aweme/v2/web/module/feed/`，独立调用默认 `use_lite_type=1`。
+
 
 ## 搜索功能的覆盖（对照当前 PC 版）
 

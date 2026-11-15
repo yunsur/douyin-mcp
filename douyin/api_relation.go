@@ -95,7 +95,7 @@ func (c *Client) GetUserFollowingList(ctx context.Context, userID, secID, maxTim
 	// 实录里这个接口特有：pc_libra_divert/support_* 紧跟 pc_client_type.
 	p.Add("pc_libra_divert", "Windows")
 	p.Add("support_h265", "1")
-	p.Add("support_dash", "1")
+	p.Add("support_dash", "0")
 	p.Add("webcast_sdk_version", "170400")
 	p.Add("webcast_version_code", "170400")
 	p.Add("version_code", "170400")
@@ -117,7 +117,7 @@ func (c *Client) GetUserFollowingList(ctx context.Context, userID, secID, maxTim
 	p.Add("platform", "PC")
 	p.Add("downlink", "10")
 	p.Add("effective_type", "4g")
-	p.Add("round_trip_time", "0")
+	p.Add("round_trip_time", "50")
 	p.WithWebID(ctx, c, refer)
 	p.WithVerifyFP(c)
 	p.Add("msToken", c.MsToken())

@@ -16,8 +16,8 @@ package douyin
 //	  POST imapi.douyin.com/v1/message/get_user_message               IM 增量拉消息（protobuf, cmd 2048）
 //
 // www-hj.douyin.com 的 IM 接口沿用仓库既有约定（GetWatchLater / IMUserInfo）：
-// 走 GetJSON / PostForm 的原始查询编码，平台块用 WithPlatform("50", ...)。
-// www.douyin.com 的接口走 duGetJSON / duPostFormJSON，平台块 WithPlatform("0", ...)。
+// 走 GetJSON / PostForm 的原始查询编码，平台块统一使用当前 Web 客户端的
+// round_trip_time=50；www.douyin.com 的接口同样使用该平台块。
 
 import (
 	"context"
