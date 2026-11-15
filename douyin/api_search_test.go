@@ -11,6 +11,7 @@ package douyin
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/url"
 	"reflect"
 	"strings"
@@ -889,6 +890,65 @@ func TestFeedProtoDecodeHelpers(t *testing.T) {
 		}
 		if _, err := duDecodeProtoOrJSON(sfxProtoResp(nil)); err == nil {
 			t.Error("empty protobuf body should error")
+		}
+	})
+}
+
+func TestSearchPaginationGuards(t *testing.T) {
+	t.Run("empty page with has_more fails without looping", func(t *testing.T) {
+		c, st := sfxStubClient(t, func(stubRequest) (*Response, error) {
+			return sfxJSON(t, map[string]any{"status_code": 0, "has_more": 1, "data": []any{}}, nil), nil
+		})
+		_, err := c.SearchSomeLive(t.Context(), "q", 10)
+		if !errors.Is(err, ErrSearchPaginationStalled) {
+			t.Fatalf("SearchSomeLive error = %v, want ErrSearchPaginationStalled", err)
+		}
+		if got := len(sfxRequestsFor(st, "/aweme/v1/web/live/search/")); got != 1 {
+			t.Fatalf("issued %d requests, want 1", got)
+		}
+	})
+
+	t.Run("business failure is not an empty success", func(t *testing.T) {
+		c, _ := sfxStubClient(t, func(stubRequest) (*Response, error) {
+			return sfxJSON(t, map[string]any{
+				"status_code": 12012,
+				"status_msg":  "search denied",
+			}, nil), nil
+		})
+		_, err := c.SearchSomeUser(t.Context(), "q", 10)
+		if !errors.Is(err, ErrSearchResponse) {
+			t.Fatalf("SearchSomeUser error = %v, want ErrSearchResponse", err)
+		}
+	})
+
+	t.Run("duplicate video cursor fails before requesting a stale page", func(t *testing.T) {
+		c, st := sfxStubClient(t, func(req stubRequest) (*Response, error) {
+			switch sfxQuery(t, req).Get("offset") {
+			case "0":
+				return sfxJSON(t, map[string]any{
+					"status_code": 0,
+					"has_more":    1,
+					"data":        []any{sfxItem("a")},
+				}, map[string]string{"X-Tt-Logid": "log-1"}), nil
+			case "25":
+				return sfxJSON(t, map[string]any{
+					"status_code": 0,
+					"has_more":    1,
+					"data":        []any{sfxItem("b")},
+				}, map[string]string{"X-Tt-Logid": "log-1"}), nil
+			}
+			return sfxStatus(500, "unexpected offset", nil), nil
+		})
+		_, err := c.SearchSomeVideoWork(t.Context(), "q", 50, "0", "0", "", "")
+		if !errors.Is(err, ErrSearchPaginationStalled) {
+			t.Fatalf("SearchSomeVideoWork error = %v, want ErrSearchPaginationStalled", err)
+		}
+		reqs := sfxRequestsFor(st, "/aweme/v1/web/search/item/")
+		if len(reqs) != 2 {
+			t.Fatalf("issued %d requests, want 2", len(reqs))
+		}
+		if got := sfxQuery(t, reqs[1]).Get("search_id"); got != "log-1" {
+			t.Fatalf("second-page search_id = %q, want log-1", got)
 		}
 	})
 }

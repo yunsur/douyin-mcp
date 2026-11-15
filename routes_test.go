@@ -86,6 +86,27 @@ func TestRoutesMCPIsProtected(t *testing.T) {
 	}
 }
 
+func TestRoutesMCPRejectsCrossOrigin(t *testing.T) {
+	svc, _ := newTestServiceJSON(t, map[string]any{})
+	router := newTestRouter(t, svc, "")
+	body := `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`
+
+	crossOrigin := performRequest(router, http.MethodPost, "/mcp", body, map[string]string{
+		"Origin": "https://evil.example",
+		"Accept": "application/json, text/event-stream",
+	})
+	if crossOrigin.Code != http.StatusForbidden {
+		t.Fatalf("cross-origin MCP status = %d, want 403; body = %s", crossOrigin.Code, crossOrigin.Body.String())
+	}
+
+	sameSite := performRequest(router, http.MethodPost, "/mcp", body, map[string]string{
+		"Accept": "application/json, text/event-stream",
+	})
+	if sameSite.Code == http.StatusForbidden {
+		t.Fatalf("MCP request without Origin must not be rejected as cross-origin")
+	}
+}
+
 func TestRoutesUnknownPathsReturnNotFound(t *testing.T) {
 	svc, _ := newTestServiceJSON(t, map[string]any{})
 	router := newTestRouter(t, svc, "")

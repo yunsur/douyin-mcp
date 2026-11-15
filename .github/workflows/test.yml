@@ -24,6 +24,9 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Go vulnerability scan
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+
       - name: Unit tests
         # -race：签名/直播/私信路径里有后台 goroutine 与共享缓存，竞态要在这里暴露。
         # 联网测试默认跳过（DOUYIN_LIVE_TEST=1 才跑），所以这一步不需要网络。

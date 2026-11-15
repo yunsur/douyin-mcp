@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -362,6 +363,13 @@ func TestCheckRiskBdturingAndPassport(t *testing.T) {
 		if err == nil {
 			t.Fatal("CheckRisk = nil, want bdturing error")
 		}
+		if !errors.Is(err, ErrRiskBdturing) {
+			t.Fatalf("CheckRisk error = %v, want ErrRiskBdturing", err)
+		}
+		risk, ok := errors.AsType[*RiskError](err)
+		if !ok || risk.Detail != "verify_center" || risk.LogID != "logid-1" {
+			t.Fatalf("RiskError = %#v, want subtype and logid", risk)
+		}
 		for _, want := range []string{"触发人机验证", "verify_center", "logid-1"} {
 			if !strings.Contains(err.Error(), want) {
 				t.Fatalf("error %q missing %q", err.Error(), want)
@@ -394,6 +402,13 @@ func TestCheckRiskBdturingAndPassport(t *testing.T) {
 		if err == nil {
 			t.Fatal("CheckRisk = nil, want passport error")
 		}
+		if !errors.Is(err, ErrRiskPassport) {
+			t.Fatalf("CheckRisk error = %v, want ErrRiskPassport", err)
+		}
+		risk, ok := errors.AsType[*RiskError](err)
+		if !ok || risk.Detail != "captcha_login" || risk.LogID != "logid-2" {
+			t.Fatalf("RiskError = %#v, want scene and logid", risk)
+		}
 		for _, want := range []string{"需要二次身份验证", "captcha_login", "logid-2"} {
 			if !strings.Contains(err.Error(), want) {
 				t.Fatalf("error %q missing %q", err.Error(), want)
@@ -405,15 +420,17 @@ func TestCheckRiskBdturingAndPassport(t *testing.T) {
 func TestCheckRiskEmptyNonJSONAndJSON(t *testing.T) {
 	t.Run("empty body names the status", func(t *testing.T) {
 		err := CheckRisk(statusResponse(204, ""))
-		if err == nil || !strings.Contains(err.Error(), "空响应") || !strings.Contains(err.Error(), "204") {
-			t.Fatalf("CheckRisk = %v, want empty-response error naming HTTP 204", err)
+		if err == nil || !errors.Is(err, ErrRiskEmptyResponse) || !strings.Contains(err.Error(), "空响应") || !strings.Contains(err.Error(), "204") {
+			t.Fatalf("CheckRisk = %v, want typed empty-response error naming HTTP 204", err)
 		}
 	})
-
 	t.Run("non-JSON body names the status", func(t *testing.T) {
 		err := CheckRisk(statusResponse(403, "<!DOCTYPE html><html>denied</html>"))
 		if err == nil {
 			t.Fatal("CheckRisk = nil, want non-JSON error")
+		}
+		if !errors.Is(err, ErrRiskNonJSON) {
+			t.Fatalf("CheckRisk error = %v, want ErrRiskNonJSON", err)
 		}
 		for _, want := range []string{"非 JSON", "403"} {
 			if !strings.Contains(err.Error(), want) {
@@ -424,8 +441,8 @@ func TestCheckRiskEmptyNonJSONAndJSON(t *testing.T) {
 
 	t.Run("acrawler challenge detected", func(t *testing.T) {
 		err := CheckRisk(statusResponse(302, `<html>__ac_nonce=0abc</html>`))
-		if err == nil || !strings.Contains(err.Error(), "acrawler") || !strings.Contains(err.Error(), "302") {
-			t.Fatalf("CheckRisk = %v, want acrawler challenge error naming 302", err)
+		if err == nil || !errors.Is(err, ErrRiskACrawler) || !strings.Contains(err.Error(), "acrawler") || !strings.Contains(err.Error(), "302") {
+			t.Fatalf("CheckRisk = %v, want typed acrawler challenge error naming 302", err)
 		}
 	})
 

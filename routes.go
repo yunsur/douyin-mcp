@@ -32,11 +32,12 @@ func setupRoutes(appServer *AppServer) *gin.Engine {
 		func(r *http.Request) *mcp.Server { return appServer.mcpServer },
 		&mcp.StreamableHTTPOptions{JSONResponse: true, Stateless: true},
 	)
+	mcpHTTPHandler := http.NewCrossOriginProtection().Handler(mcpHandler)
 
 	protected := router.Group("")
 	protected.Use(authMiddleware(appServer.authToken))
-	protected.Any("/mcp", gin.WrapH(mcpHandler))
-	protected.Any("/mcp/*path", gin.WrapH(mcpHandler))
+	protected.Any("/mcp", gin.WrapH(mcpHTTPHandler))
+	protected.Any("/mcp/*path", gin.WrapH(mcpHTTPHandler))
 
 	api := protected.Group("/api/v1")
 	{

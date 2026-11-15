@@ -6,8 +6,29 @@ package douyin
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 )
+
+var (
+	// ErrSearchResponse identifies a non-zero search business status.
+	ErrSearchResponse = errors.New("search response failed")
+	// ErrSearchPaginationStalled identifies a page that cannot advance safely.
+	ErrSearchPaginationStalled = errors.New("search pagination stalled")
+)
+
+func searchResponseError(res map[string]any) error {
+	code := toInt64(res["status_code"])
+	if code == 0 {
+		return nil
+	}
+	return fmt.Errorf("%w: status_code=%d %s", ErrSearchResponse, code, duStr(res["status_msg"]))
+}
+
+func searchPaginationError(offset, detail string) error {
+	return fmt.Errorf("%w: offset=%s %s", ErrSearchPaginationStalled, offset, detail)
+}
 
 // SearchGeneralWork searches the general channel
 // (`/aweme/v1/web/general/search/single/`, version_code 190600).
@@ -65,6 +86,9 @@ func (c *Client) SearchSomeGeneralWork(ctx context.Context, query string, num in
 		if err != nil {
 			return nil, err
 		}
+		if err := searchResponseError(res); err != nil {
+			return nil, err
+		}
 		data := duSlice(res["data"])
 		for _, item := range data {
 			work := duMap(item)
@@ -72,8 +96,12 @@ func (c *Client) SearchSomeGeneralWork(ctx context.Context, query string, num in
 				out = append(out, item)
 			}
 		}
-		if !duHasMore(res) || len(out) >= num {
+		hasMore := duHasMore(res)
+		if !hasMore || len(out) >= num {
 			break
+		}
+		if len(data) == 0 {
+			return nil, searchPaginationError(offset, "响应声明还有结果但 data 为空")
 		}
 		offset = strconv.FormatInt(toInt64(offset)+int64(len(data)), 10)
 	}
@@ -150,7 +178,13 @@ func (c *Client) searchVideoWorkRaw(ctx context.Context, query, offset, count, s
 		return nil, "", err
 	}
 	res, err := decodeJSONObject(resp.Body)
-	return res, nextID, err
+	if err != nil {
+		return nil, nextID, err
+	}
+	if err := searchResponseError(res); err != nil {
+		return nil, nextID, err
+	}
+	return res, nextID, nil
 }
 
 // SearchSomeVideoWork pages through video-channel search results up to num,
@@ -160,16 +194,32 @@ func (c *Client) SearchSomeVideoWork(ctx context.Context, query string, num int,
 	count := "25"
 	searchID := ""
 	var out []any
+	var seenSearchIDs map[string]struct{}
 	for {
 		res, nextID, err := c.searchVideoWorkRaw(ctx, query, offset, count, sortType, publishTime, filterDuration, searchRange, searchID)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, duSlice(res["data"])...)
+		data := duSlice(res["data"])
+		hasMore := duHasMore(res)
+		if hasMore && len(data) == 0 {
+			return nil, searchPaginationError(offset, "响应声明还有结果但 data 为空")
+		}
+		out = append(out, data...)
 		searchID = nextID
-		if !duHasMore(res) || len(out) >= num {
+		if !hasMore || len(out) >= num {
 			break
 		}
+		if searchID == "" {
+			return nil, searchPaginationError(offset, "响应声明还有结果但缺少 X-Tt-Logid search_id")
+		}
+		if seenSearchIDs == nil {
+			seenSearchIDs = make(map[string]struct{})
+		}
+		if _, ok := seenSearchIDs[searchID]; ok {
+			return nil, searchPaginationError(offset, "X-Tt-Logid search_id 重复")
+		}
+		seenSearchIDs[searchID] = struct{}{}
 		offset = strconv.FormatInt(toInt64(offset)+toInt64(count), 10)
 	}
 	if len(out) > num {
@@ -263,8 +313,16 @@ func (c *Client) SearchSomeUser(ctx context.Context, query string, num int) ([]a
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, duSlice(res["user_list"])...)
-		if !duHasMore(res) || len(out) >= num {
+		if err := searchResponseError(res); err != nil {
+			return nil, err
+		}
+		data := duSlice(res["user_list"])
+		hasMore := duHasMore(res)
+		if hasMore && len(data) == 0 {
+			return nil, searchPaginationError(offset, "响应声明还有结果但 user_list 为空")
+		}
+		out = append(out, data...)
+		if !hasMore || len(out) >= num {
 			break
 		}
 		offset = strconv.FormatInt(toInt64(offset)+toInt64(count), 10)
@@ -324,8 +382,16 @@ func (c *Client) SearchSomeLive(ctx context.Context, query string, num int) ([]a
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, duSlice(res["data"])...)
-		if !duHasMore(res) || len(out) >= num {
+		if err := searchResponseError(res); err != nil {
+			return nil, err
+		}
+		data := duSlice(res["data"])
+		hasMore := duHasMore(res)
+		if hasMore && len(data) == 0 {
+			return nil, searchPaginationError(offset, "响应声明还有结果但 data 为空")
+		}
+		out = append(out, data...)
+		if !hasMore || len(out) >= num {
 			break
 		}
 		offset = strconv.FormatInt(toInt64(offset)+toInt64(count), 10)

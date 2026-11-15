@@ -363,7 +363,7 @@ func (h *Headers) WithBD(ctx context.Context, c *Client, api string, aid int, or
 	return nil
 }
 
-// CheckRisk converts Douyin's anti-bot responses into readable errors.
+// CheckRisk converts Douyin's anti-bot responses into readable, typed errors.
 func CheckRisk(resp *Response) error {
 	text := strings.TrimLeft(resp.Text(), " \t\r\n")
 	if strings.HasPrefix(text, "{") || strings.HasPrefix(text, "[") {
@@ -383,7 +383,13 @@ func CheckRisk(resp *Response) error {
 		if subtype == "" {
 			subtype = "未知类型"
 		}
-		return fmt.Errorf("触发人机验证（bdturing %s）。需在浏览器完成验证、或更换 IP / 降低请求频率后重试。logid=%s", subtype, logid)
+		return &RiskError{
+			Reason:     ErrRiskBdturing,
+			StatusCode: resp.StatusCode,
+			LogID:      logid,
+			Detail:     subtype,
+			Message:    fmt.Sprintf("触发人机验证（bdturing %s）。需在浏览器完成验证、或更换 IP / 降低请求频率后重试。logid=%s", subtype, logid),
+		}
 	}
 	if pp := resp.HeaderGet("X-Tt-Verify-Passport-Decision"); pp != "" {
 		scene := ""
@@ -398,19 +404,40 @@ func CheckRisk(resp *Response) error {
 		if scene == "" {
 			scene = "未知"
 		}
-		return fmt.Errorf("需要二次身份验证（scene=%s）。多为缺少 x-tt-session-dtrait 或账号风控所致。logid=%s", scene, logid)
+		return &RiskError{
+			Reason:     ErrRiskPassport,
+			StatusCode: resp.StatusCode,
+			LogID:      logid,
+			Detail:     scene,
+			Message:    fmt.Sprintf("需要二次身份验证（scene=%s）。多为缺少 x-tt-session-dtrait 或账号风控所致。logid=%s", scene, logid),
+		}
 	}
 	if text == "" {
-		return fmt.Errorf("接口返回空响应（HTTP %d），通常是签名参数不对或被风控拦截。logid=%s", resp.StatusCode, logid)
+		return &RiskError{
+			Reason:     ErrRiskEmptyResponse,
+			StatusCode: resp.StatusCode,
+			LogID:      logid,
+			Message:    fmt.Sprintf("接口返回空响应（HTTP %d），通常是签名参数不对或被风控拦截。logid=%s", resp.StatusCode, logid),
+		}
 	}
 	if strings.Contains(text, "__ac_nonce") || strings.Contains(text, "_$jsvmprt") {
-		return fmt.Errorf("命中 acrawler 挑战页（HTTP %d）。需要 __ac_signature：本服务会在可解析到 Node（PATH / DY_NODE / mise）时本地求解并自动重试一次；也可用 DY_AC_SIGNATURE/DY_AC_NONCE 注入。logid=%s", resp.StatusCode, logid)
+		return &RiskError{
+			Reason:     ErrRiskACrawler,
+			StatusCode: resp.StatusCode,
+			LogID:      logid,
+			Message:    fmt.Sprintf("命中 acrawler 挑战页（HTTP %d）。需要 __ac_signature：本服务会在可解析到 Node（PATH / DY_NODE / mise）时本地求解并自动重试一次；也可用 DY_AC_SIGNATURE/DY_AC_NONCE 注入。logid=%s", resp.StatusCode, logid),
+		}
 	}
 	head := text
 	if len(head) > 120 {
 		head = head[:120]
 	}
-	return fmt.Errorf("接口返回非 JSON（HTTP %d），前 120 字：%q。logid=%s", resp.StatusCode, head, logid)
+	return &RiskError{
+		Reason:     ErrRiskNonJSON,
+		StatusCode: resp.StatusCode,
+		LogID:      logid,
+		Message:    fmt.Sprintf("接口返回非 JSON（HTTP %d），前 120 字：%q。logid=%s", resp.StatusCode, head, logid),
+	}
 }
 
 // acRetry solves an acrawler challenge page once and replays the request.
