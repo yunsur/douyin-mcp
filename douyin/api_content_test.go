@@ -817,7 +817,7 @@ func TestUserGetUserWorkInfo(t *testing.T) {
 	for _, want := range []string{
 		"sec_user_id=SEC9", "max_cursor=0", "count=18",
 		"need_time_list=1", "version_code=290100", "version_name=29.1.0",
-		"from_user_page=1", "a_bogus=",
+		"from_user_page=1", "support_dash=1", "a_bogus=",
 	} {
 		if !strings.Contains(first.URL, want) {
 			t.Errorf("URL 缺少 %q: %s", want, first.URL)

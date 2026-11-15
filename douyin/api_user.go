@@ -76,7 +76,7 @@ func (c *Client) GetUserWorkInfo(ctx context.Context, userURL, maxCursor string)
 	p.Add("pc_client_type", "1")
 	p.Add("pc_libra_divert", "Windows")
 	p.Add("support_h265", "1")
-	p.Add("support_dash", "0")
+	p.Add("support_dash", "1")
 	p.Add("cpu_core_num", GetProfile().CpuCoreNum)
 	// 这个接口特有：version_code 是 290100 / 29.1.0.
 	p.Add("version_code", "290100")

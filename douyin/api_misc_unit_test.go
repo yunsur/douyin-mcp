@@ -137,6 +137,7 @@ func TestSocialFamiliarFeedRequestShape(t *testing.T) {
 	for k, want := range map[string]string{
 		"cursor": "0", "count": "20", "level": "1",
 		"address_book_access": "2", "gps_access": "2", "pull_type": "0",
+		"support_dash": "1",
 	} {
 		if got := q.Get(k); got != want {
 			t.Errorf("query %s=%q want %q", k, got, want)
